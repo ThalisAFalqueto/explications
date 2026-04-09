@@ -1,5 +1,102 @@
-Por enquanto, sem título mesmo. Só iniciando o repositório...
+#import "@preview/ctheorems:1.1.3": *
+#import "@preview/lovelace:0.3.0": *
+#show: thmrules.with(qed-symbol: $square$)
 
+#import "@preview/codly:1.3.0": *
+#import "@preview/codly-languages:0.1.1": *
+#show: codly-init.with()
+#codly(languages: codly-languages, stroke: 1pt + luma(100))
+
+#import "@preview/tablex:0.0.9": tablex, rowspanx, colspanx, cellx
+
+#set page(width: 21cm, height: 30cm, margin: 1.5cm)
+
+#set par(
+  justify: true
+)
+
+#set figure(supplement: "Figura")
+
+#set heading(numbering: "1.1.1")
+
+#let theorem = thmbox("theorem", "Teorema")
+#let corollary = thmplain(
+  "corollary",
+  "Corolário",
+  base: "theorem",
+  titlefmt: strong
+)
+#let definition = thmbox("definition", "Definição", inset: (x: 1.2em, top: 1em))
+#let example = thmplain("example", "Exemplo").with(numbering: none)
+#let proof = thmproof("proof", "Demonstração")
+
+#set math.equation(
+  numbering: "(1)",
+  supplement: none,
+)
+#show ref: it => {
+  // provide custom reference for equations
+  if it.element != none and it.element.func() == math.equation {
+    // optional: wrap inside link, so whole label is linked
+    link(it.target)[(#it)]
+  } else {
+    it
+  }
+}
+
+#set text(
+  font: "Atkinson Hyperlegible",
+  size: 12pt,
+)
+
+#show heading: it => {
+  if it.level == 1 {
+    [
+      #block(
+        width: 100%,
+        height: 1cm,
+        text(
+          size: 1.5em,
+          weight: "bold",
+          it.body
+        )
+      )
+    ]
+  } else {
+    it
+  }
+}
+
+
+// ============================ PRIMEIRA PÁGINA =============================
+#align(center + top)[
+  FGV EMAp
+
+  Thalis Ambrosim Falqueto
+]
+
+#align(horizon + center)[
+  #text(17pt)[
+    Computação na nuvem
+  ]
+  
+  #text(14pt)[
+    Explications
+  ]
+]
+
+#align(bottom + center)[
+  Rio de Janeiro
+
+  2026
+]
+
+#pagebreak()
+
+// ============================ PÁGINAS POSTERIORES =========================
+#outline(title: "Conteúdo")
+
+#pagebreak()
 
 = Slide 1 - Introdução
 
@@ -32,7 +129,11 @@ o nível de controle que você terá):
 - PaaS (Plataforma as a Service) - O provedor gerencia toda a infraestrutura e o sistema operacional. Foca-se apenas em escrever a lógica de negócio do produto. Exemplo: ainda não sei;
 - SaaS (Software as a Service) - Produto $100%$ pronto e gerenciado pelo provedor, pronto para o usuário final. Exemplo: Netflix, Spotify;
 
-=== imagem do Slide
+#figure(
+  caption: [Imagem de tipos de infraestrutura. Em azul, o que é feito por você, e, em branco, o que é feito pelo prestador de serviço],
+  image(width: 95%, "images/aas.png")
+)
+
 
 == Modelos de Infraestrutura
 
@@ -56,7 +157,11 @@ chamado hipervisor. Assim, pode-se aproveitar melhor os recursos, pois component
 ser executados em ambientes isolados, cada um com uma proporção diferente de acordo com a demanda,
 além de criação e destruição de processos automatizada.
 
-=== imagem Slide
+
+#figure(
+  caption: [Imagem de como funciona o particionamento de uma Máquina virtual, com ajuda do software hipervisor.],
+  image(width: 80%, "images/vms.png")
+)
 
 == EC2
 
@@ -78,13 +183,19 @@ $
 $
 
 Exemplo: t3.medium, c6i.xlarge, etc. Explicação da nomenclatura:
-- família - Varia de acordo com a necessidade de uso:
-=== imagem slide
+- família - Varia de acordo com a necessidade de uso:#figure(
+  caption: [Explicação de cada variação de família e suas principais utilidades.],
+  image(width: 100%, "images/familiasec2.png")
+)
 - geração - Indica a versão do hardware. Quanto maior for, mais moderno é, e, geralmente, gerações mais recentes oferecem maior custo-benefício;
-- atributos - São opcionais e podem ser combinados:
-=== imagem slide
-- tamanho - Define quantidade de vCPU e memória.
-=== imagem slide
+- atributos - São opcionais e podem ser combinados:#figure(
+  caption: [Explicação de cada variação de atributo e seus signficados.],
+  image(width: 70%, "images/atributosec2.png")
+)
+- tamanho - Define quantidade de vCPU e memória.#figure(
+  caption: [Explicação de cada variação de tamanho e suas quantidades de vCPU e memória respectivas.],
+  image(width: 70%, "images/tamanhoec2.png")
+)
 
 Explicando a imagem, uma vCPU é uma fatia de processamento de um servidor físico
 real alocada exclusivamente para a VM. Esses processadores possuem núcleos físicos capazes de executar instruções
@@ -123,6 +234,8 @@ Existem três tipos:
 
 Ou seja, a AMI é utilizada como uma "golden image", provendo um estado configurado da sua
 aplicação para levantar rapidamente instâncias da sua aplicação. Alguma AMI é sempre obrigatória.
+
+= Slide 3 - Bancos Gerenciados
 
 
 
