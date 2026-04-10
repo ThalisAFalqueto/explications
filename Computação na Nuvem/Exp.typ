@@ -253,10 +253,121 @@ principais:
 
 == Amazon RDS
 
+O Amazon RDS (Relationa Database Service) é um serviço gerenciado para execução de SGBDs na nuvem.
+O usuário acessa o banco de forma tradicional, com host, porta, drivers, ORMs. e todo controle acontece através da API ou interface da AWS.
+Suporta: MySQL, PostgreSQL, MariaDB, Oracle, Microsoft SQL Server e Amazon Aurora.
+
+Assim como no EC2, o RDS também usa classes de instâncias, como db.t3.micro,
+db.m6i.large, db.r6i.large, etc. O EBS também pode ser associado a essa instância, e, além disso, a AWS fornece mecanismos para expandir o volume de armazenamento automaticamente ao atingir
+um limite pré-determinado.
+
+=== Backups
+
+Os backups automáticos no Amazon RDS funcionam da seguinte forma: A AWS tira uma "foto" (snapshot) diária de todo o volume do seu banco de dados e também guarda o registro contínuo de logs (tudo que aconteceu no banco) que acontece nele.
+Com isso, consegue permitir a recuperação em um ponto no tempo (Point-in-Time Recovery). Se alguém apagar uma tabela importante do seu sistema por acidente às 14h05, você pode restaurar o banco de dados exatamente para como ele estava às 14h04.
+ A nuvem permite que você configure a retenção desses dados por um período de 1 a 35 dias.
+
+=== Multi-AZ
+
+Ao ser habilitado, mantém uma réplica standby em uma segunda zona. A replicação é síncrona: uma nova linha deve ser confirmada nos dois bancos antes de retornar sucesso.
+
+Em caso de falha (hardware, manutenção): desvio automático em ~60
+segundos sem alteração de endpoint (o DNS é atualizado automaticamente) para o banco de réplica. Além disso, os backups são feitos no standby, sem impacto de Input/Output no
+banco primário.
+
+Ainda, em uma versão recente do Multi-AZ com dois standbys as réplicas
+podem ser utilizadas como leitura (ainda não sei se podemos ter quantos standbys quisermos). Isso implica uma diferença no Read Replicas.
+
+=== Read Replicas (escalabilidade de leitura)
+
+São instâncias somente leitura sincronizadas com o primary de forma assíncrona, com a função de distribuir carga de leitura em produtos com muito mais leituras do que
+escritas. Têm até 5 réplicas para MySQL, MariaDB e PostgreSQL.
+
+A aplicação (teu código) precisa direcionar queries de leitura, para os endpoints das réplicas, ou seja, você tem que configurar que query é enviada pra réplica e qual não.
+Réplicas podem estar em outra região e, além disso, podem ser promovidas a primary independente (útil para migrações ou disaster
+recovery entre regiões), ou seja, você pode desconectar uma réplica do sistema de cópias e transformá-la em um banco de dados principal e independente, que passa a aceitar leitura e gravação.
+
+=== imagem slide
+
+Basicamente, o Multi-AZ pode cobrir parte dos problemas que o Read Replicas cobre, e vice-versa.
+
+== Amazon Aurora
+
+O RDS é bom, mas tem alguns problemas:
+
+- Discos Isolados: cada máquina virtual tem o seu próprio disco (volume EBS) separado;
+- Replicação "pesada": Para manter as Read Replicas atualizadas, o banco principal precisa enviar pesados arquivos de registro (logs) constantemente pela rede, o que pode gerar atrasos.
+- Lentidão na falha: Se o servidor principal cair, a máquina reserva precisa processar todos esses logs pendentes antes de conseguir aceitar novas conexões. É por isso que o failover do RDS demora cerca de $60$ segundos.
+
+O Amazon Aurora resolver esse problema, da forma:
+
+-  Para de usar o EBS e usa uma rede distribuída proprietária da AWS, e assim consegue salvar os dados 6 vezes em 3 data centers diferentes, garantindo segurança extrema mesmo com apenas uma máquina ligada.
+- Em vez de enviar arquivos pesados pela rede para atualizar as cópias, o Aurora envia apenas registros rápidos de mudanças (logs). A própria camada de armazenamento recebe isso e reconstrói as páginas de dados sozinha, o que elimina gargalos de lentidão (não entendi isso e nem acho que seja muito importante entender).
+
+Essas incríveis vantagens que eu não entendi completamente trazem consequências práticas:
+
+=== imagem slide
+
+Quando compensa:
+- Produto de produção com leitura intensa e necessidade de alta disponibilidade.
+- Crescimento orgânico do volume sem a necessidade de gerenciar storage.
+- Failover rápido crítico para a aplicação.
+Quando não compensa:
+- Desenvolvimento e testes.
+- Aplicação requer extensões específicas ainda não suportadas pelo Aurora.
+
+== DynamoDB
+
+O Amazon DynamoDB nasceu para resolver um problema real da própria Amazon: em 2004, durante picos de vendas (como a Black Friday), os bancos de dados relacionais tradicionais simplesmente não aguentavam o tráfego massivo. A solução foi criar o DynamoDB, que é um banco de dados NoSQL e totalmente serverless. Isso significa que não há servidores virtuais para você gerenciar, atualizar ou fazer manutenção.
+
+Diferença de servidor entre DynamoDB e RDS:
+
+- Amazon RDS (Gerenciado mas com servidor): Nele, o servidor ainda existe de forma visível para você. Você precisa escolher o tamanho da máquina virtual (como aquelas famílias db.t3 ou db.m que vimos antes) e pagar por hora enquanto ela estiver ligada. Ele é "gerenciado" porque a AWS instala o banco, aplica atualizações e faz os backups para você, mas você ainda dimensiona o servidor.
+- Amazon DynamoDB (Serverless): Aqui, a infraestrutura desaparece completamente. Você não escolhe máquina, quantidade de processador (vCPU) ou memória, simplesmente cria uma tabela e a AWS aloca os recursos magicamente nos bastidores. Em vez de pagar por um servidor ligado, você paga apenas pelo volume de requisições de leitura e escrita que a sua tabela receber.
+
+=== Características
+
+- Suporta dois modelos de dados - chave-valor e documento (JSON).
+- Proposta de valor central - latência de dígito único em milissegundos para qualquer escala
+  - AWS faz 3 cópias automáticas dos seus dados em data centers diferentes. 
+  - Garantido por SLA 99,9%: A AWS garante que o serviço ficará indisponível por, no máximo, cerca de 8,7 horas durante um ano inteiro.
+
+==== Estrutura de dados
+
+- Tabela - container de dados;
+- Item - Unidade (linha) de dados dentro de uma tabela;
+- Atributo - Par chave-valor dentro de um item;
+
+Único requisito: todos os itens devem conter os atributos que compõem a chave primária da tabela.
+
+=== Funcionamento
+
+Uma partição é uma fatia do espaço total de dados de uma tabela, gerenciada pela AWS, que, tem armazenamento de 10 GB. Ao atingir o limite de armazenamento, é dividido em duas automaticamente e seus itens são redistribuídos. Cada partição (ou tabela, não sei) aguenta até $3.000$ leituras e $1.000$ escritas por segundo. 
+
+Para organizar e encontrar seus dados rapidamente dentro dessas partições, o DynamoDB usa o conceito de chaves:
+
+- Partition Key (chave de partição): É obrigatória;
+- Sort Key (chave de ordenação): É opcional e forma uma chave composta junto com a primeira;
+
+Uma função de hash é aplicada sobre o valor da Partition Key para determinar em qual partição física o item será armazenado.
+
+=== imagem slide
+
+Assim, todos os itens com a mesma Partition Key são levados para a
+mesma partição, ou seja, latência rápida e constante.
+
+Possível problema: Se você não definiu sua partition key de forma consistente e otimizada para o particionamento, de nada vai adiantar o hash. Exemplos de pks ruins:
+- Baixa cardinalidade - a PK tem poucos valores distintos;
+- Distribuição desigual de acesso - a natureza da aplicação lê/escreve com maior frequência um subconjunto de entradas;
+- Temporal hotspot - usar data como PK.
+
+=== Modelos de cobrança
+
+- Provisionado - Você define um limite máximo de capacidade antecipadamente. O custo é mais barato e previsível (ideal para sistemas com tráfego estável), mas se houver um pico inesperado acima do seu limite, o banco rejeita as conexões excedente;
+
+- On-Demand: Você não configura nenhum limite. O banco escala automaticamente e absorve qualquer volume de tráfego instantaneamente. O custo por requisição é mais alto, mas é a opção segura para tráfegos imprevisíveis;
+
+= Slide 5 - Conteinirização
 
 
-
-
-
-
-
+.
