@@ -237,6 +237,21 @@ aplicação para levantar rapidamente instâncias da sua aplicação. Alguma AMI
 
 = Slide 3 - Bancos Gerenciados
 
+É possível que você execute um banco de dados em alguma instância da EC2 de sua escolha, mas, assim como todo banco de dados, você terá certo trabalho para instalar, configurar e atualizar o SGBD, além de ter que administrar agendamento e execução de backups, segurança, monitoramento de performance, re-particionamento em caso de crescimento, etc. A esse ponto, talvez seja melhor só usar um propriamente gerenciado pela AWS.
+
+Com um banco gerenciado, a AWS assume a responsabilidade por:
+- Backups automáticos com retenção configurável (até 35 dias no RDS);
+- Atualizações automaticamente na janela de manutenção escolhida pelo usuário;
+- Alta disponibilidade com Multi-AZ e failover (explicado abaixo);
+- Escalabilidade de processamento e armazenamento via API ou interface da AWS;
+- Métricas integradas ao CloudWatch sem configuração adicional.
+
+A AWS oferece uma família ampla de serviços de banco de dados. A seguir os
+principais:
+
+=== imagem slide
+
+== Amazon RDS
 
 
 
