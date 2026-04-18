@@ -413,8 +413,80 @@ Outros benefícios:
 
 Ferramenta que permite executar múltiplos containers interligados em um único comando, útil para descrever a configuração e o relacionamento entre os containers de um sistema, facilitando o compartilhamento e versionamento da configuração.
 
-== Slide 6 - Orquestração de Containers
+= Slide 6 - Orquestração de Containers
 
 O Docker é excelente para empacotar e rodar a aplicação no computador do desenvolvedor, mas não gerencia sistemas complexos em produção. Se um container falhar de madrugada ou se o tráfego aumentar repentinamente, precisamos de uma ferramenta para reiniciar o sistema ou criar novas cópias automaticamente. Um orquestrador de containers automatiza essas responsabilidades.
+
+== ECS
+
+O Amazon ECS é o orquestrador de containers da AWS (traduzido como Elastic Container Service). A AWS gerencia o plano de controle: agendamento de tarefas, registro de estado e
+integrações, e o usuário gerencia as definições de containers e a configuração dos serviços.
+
+=== Integrações nativas
+
+Ele vem com algumas integrações nativas:
+
+- ECR (Elastic Container Registry) - Guarda as Imagens Docker da sua aplicação para que o ECS possa puxá-las e rodar;
+- ALB (Application Load Balancer): Recebe as requisições dos usuários na internet e distribui o tráfego de forma equilibrada entre todos os containers que estão rodando, garantindo que nenhum fique sobrecarregado;
+- CloudWatch - O ECS envia automaticamente os logs e métricas como uso de CPU e memória dos containers. Se o sistema der erro, você lê os logs no CloudWatch em vez de ter que acessar a máquina do container.
+- IAM (Identity and Access Management) - É o controle de segurança. Ele permite dar permissões exatas para cada container individualmente. Por exemplo, você pode criar uma regra dizendo que o container do seu site pode ler imagens no armazenamento, mas não pode apagar nada.
+
+=== Organização
+
+O ECS se organiza de duas formas:
+- Cluster - Agrupamento lógico onde os containers vão rodar. Se você optar pelo modo de execução Fargate (que é serverless), os servidores físicos e máquinas virtuais ficam totalmente invisíveis para você, tirando o peso do gerenciamento da infraestrutura;
+- Task Definition (Definição de Tarefa) - Receita do container para a produção. Nela você especifica qual imagem Docker usar, quanta memória e processador (vCPU) alocar e quais portas liberar para acesso. Toda vez que você altera essa receita, o ECS gera uma nova versão numerada (revisão) para manter o histórico organizado;
+
+a Task Definition dita o que vai rodar, e o Cluster é onde isso vai rodar (eu acho).
+
+Agora, temos duas coisas menores, que parecem derivar dessas outras duas coisas de cima:
+- Task (Tarefa) - Instância em execução de uma tarefa;
+- Service (Serviço): Rrecurso que pode ser criado em um cluster para definir características de execução de tarefas, definindo quantidade de tarefas de mesmo tipo, reiniciando tarefas com falha, etc.
+
+Aparentemente, o Service trabalha dentro do Cluster garantindo que suas Tasks fiquem sempre ativas, obedecendo as regras da sua Task Definition.
+
+Dentro da Task Definition, a AWS separa a segurança em duas permissões diferentes:
+
+- Task Execution Role - Dá autorização para o próprio ECS conseguir baixar a sua Imagem do repositório (ECR) e enviar os logs do sistema para o CloudWatch;
+- Task Role - É a permissão da sua aplicação, define o que o seu código pode fazer lá dentro, como acessar um banco de dados ou ler um arquivo em um bucket do S3.
+
+=== Modos de execução
+
+Ele suporta dois modos de execução:
+
+- Modo EC2 - O usuário provisiona e gerencia os servidores virtuais (instâncias EC2) que compõem o seu cluster. A vantagem é ter acesso total à máquina subjacente (como acesso SSH), mas a cobrança é feita pelas instâncias que estão alocadas e ligadas, independentemente do número de tarefas que estão rodando nelas;
+- Modo Fargate: É o modelo serverless (sem servidor). Aqui, a infraestrutura de servidores fica totalmente invisível e você não precisa gerenciar instâncias EC2. A AWS cuida de toda a alocação de recursos automaticamente e você paga apenas pelo que as suas tarefas consumirem.
+
+=== Estratégias de deploy
+
+Beleza, mas como atualizar o seu sistema sem tirá-lo do ar? O ECS gerencia isso de duas formas principais através do Service:
+
+- Rolling Update (Estratégia padrão) - O ECS substitui os containers antigos pelos novos gradualmente. Você define uma porcentagem mínima e máxima de tarefas rodando, garantindo que a capacidade do seu sistema se mantenha estável para os usuários durante toda a transição;
+- Blue/Green (Usando o AWS CodeDeploy) - É uma estratégia mais avançada e segura. Ele cria um ambiente totalmente novo e paralelo (o Verde) rodando ao lado do seu ambiente atual (o Azul). Você decide como transferir os clientes para o ambiente novo: tudo de uma vez (All-at-once), um pouquinho, pausa e depois o resto (Canary), ou um pouquinho por vez (Linear). A maior vantagem é rollback imediato: se a versão nova der problema, você volta o tráfego instantaneamente para o ambiente Azul, que continua intacto esperando.
+
+=== Balanceador de carga
+
+O ALB (Application Load Balancer) opera na camada de aplicação, e por isso consegue inspecionar o conteúdo da requisição (HTTP/HTTPS) e distribuir o tráfego de forma inteligente, roteando com base na URL, no host ou em cabeçalhos, da forma:
+- O cliente acessa a sua aplicação através do ALB;
+- O ALB encaminha a requisição para um Target Group, que funciona como uma lista dinâmica de quais tarefas (containers) estão saudáveis e disponíveis para receber acessos;
+- O Target Group, por fim, entrega a requisição diretamente para a rede do seu container, garantindo balanceamento das requisições entre containers.
+
+=== Escalabilidade automática
+ 
+O Auto Scalling aumenta ou diminui sozinho a quantidade de containers rodando no seu sistema, obedecendo os limites de mínimo e máximo configurados;
+Para saber a hora exata de criar ou destruir containers, ele usa políticas. As duas principais são:
+
+- Target Tracking (Rastreamento de Alvo) - O usuário define um alvo, por exemplo, "manter o uso médio de CPU em 60%". Se o tráfego aumentar e a CPU passar desse alvo, a AWS cria novos containers. Se o tráfego cair, ela destrói os containers excedentes para economizar dinheiro;
+- Step Scaling - Permite criar regras "em degraus" usando alarmes. Por exemplo: adicione 2 containers se a CPU passar de 70%, e adicione 5 containers se passar de 90%.
+
+O serviço também aplica um tempo de pausa (Cooldown) entre essas ações para evitar um "efeito cascata", impedindo que o sistema fique criando e destruindo máquinas de forma descontrolada a cada segundo. Dá pra ver algumas métricas de CPU, memória e requisições e colocar essas métricas como gatilho para ativar o scaling.
+
+=== Monitoramento
+
+O ECS se integra nativamente ao CloudWatch da AWS. Nele, você tem duas ferramentas principais de apoio:
+
+- Container Insights - Coleta métricas detalhadas e visuais do seu cluster, dos serviços e de cada container individualmente;
+- CloudWatch Alarms: Fica vigiando essas métricas para acionar automaticamente as regras do Auto Scaling (como criar mais máquinas em um pico) ou para disparar alertas operacionais (como enviar um e-mail).
+
 
 
