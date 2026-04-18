@@ -369,5 +369,19 @@ Possível problema: Se você não definiu sua partition key de forma consistente
 
 = Slide 5 - Conteinirização
 
+Uma máquina virtual é pesada, pois precisa instalar e rodar um sistema operacional inteiro só pra ela.
+Já a conteinirização é muito mais eficiente, pois é uma virtualização que empacota apenas a sua aplicação 
+e as dependências em um ambiente isolado (o contâiner), compartilhando o mesmo ambiente virtual.
 
-.
+== Funcionamento
+
+Funciona em três passos:
+
+- Dockerfile - Script de receita de como preparar sua aplicação (quais arquivos copiar, bibliotecas instalar, etc.);
+- Imagem - Pacote fechado e imutável gerado a partir do Dockerfile;
+- Container - Instância em execução da imagem;
+
+=== imagem slide
+
+Consequentemente, os contâiners consomem menos recursos do sistema operacional, já que não emulam um sistema operacional completo. Pelo mesmo motivo, exigem um tempo menor de inicialização e possibilitam o compartilhamento de recursos.
+
