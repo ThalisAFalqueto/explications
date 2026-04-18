@@ -383,5 +383,38 @@ Funciona em três passos:
 
 === imagem slide
 
+=== Dockerfile
+
+Dockerfile define uma sequência de comandos executados sequencialmente, e comandos do tipo RUN, COPY e ADD produzem uma nova camada (layer) na
+imagem, e camadas são utilizadas como cache pelo compilador. No caso do cache, quando você muda a terceira camada, como cada camada é feita em ordem de dependência, ele não precisa re-compilar as camadas 1 e 2, apenas da três para frente. Com isso, reduz drasticamente o tempo de compilação da imagem.
+
+O arquivo segue uma ordem lógica:
+- Imagem base: Escolhe um ponto de partida (por exemplo, começar com um sistema já com o Python instalado);
+- Dependências: Comandos para instalar as bibliotecas extras que sua aplicação vai precisar para rodar;
+- Cópia de arquivos: O comando que transfere os arquivos do seu código-fonte para dentro da imagem;
+- Exposição de porta: Define qual porta (como a 80) o container vai usar para se comunicar com a internet;
+- Script de inicialização: O comando final que vai efetivamente "ligar" a sua aplicação quando o container ganhar vida;
+
+
+== Vantagens
 Consequentemente, os contâiners consomem menos recursos do sistema operacional, já que não emulam um sistema operacional completo. Pelo mesmo motivo, exigem um tempo menor de inicialização e possibilitam o compartilhamento de recursos.
+
+Outros benefícios:
+
+- Portabilidade – Independe da distribuição Linux (hospedeira).
+- Consistência – O ambiente de execução é criado sempre da mesma forma.
+- Automação - Possibilita que o processo de implantação seja executado semintervenção humana.
+- Escalabilidade - Combinado com outras soluções, possibilita que novas instâncias sejam criadas a fim de atender um aumento de demanda pelo serviço.
+- Isolamento - Falhas e vulnerabilidades em um container não afeta os demais containers do sistema.
+- Gerenciamento - A padronização da interface do container viabiliza a utilização de ferramentas de orquestração.
+- Depurabilidade - Um ambiente de produção pode ser emulado por um desenvolvedor com o objetivo de investigar defeitos dependentes de ambiente.
+
+== Docker Compose
+
+Ferramenta que permite executar múltiplos containers interligados em um único comando, útil para descrever a configuração e o relacionamento entre os containers de um sistema, facilitando o compartilhamento e versionamento da configuração.
+
+== Slide 6 - Orquestração de Containers
+
+O Docker é excelente para empacotar e rodar a aplicação no computador do desenvolvedor, mas não gerencia sistemas complexos em produção. Se um container falhar de madrugada ou se o tráfego aumentar repentinamente, precisamos de uma ferramenta para reiniciar o sistema ou criar novas cópias automaticamente. Um orquestrador de containers automatiza essas responsabilidades.
+
 
