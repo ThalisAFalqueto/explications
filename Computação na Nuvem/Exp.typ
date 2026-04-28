@@ -488,5 +488,5 @@ O ECS se integra nativamente ao CloudWatch da AWS. Nele, você tem duas ferramen
 - Container Insights - Coleta métricas detalhadas e visuais do seu cluster, dos serviços e de cada container individualmente;
 - CloudWatch Alarms: Fica vigiando essas métricas para acionar automaticamente as regras do Auto Scaling (como criar mais máquinas em um pico) ou para disparar alertas operacionais (como enviar um e-mail).
 
-
+= Slide 7 - Comunicação através de mensagens
 
