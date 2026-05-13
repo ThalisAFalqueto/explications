@@ -249,7 +249,10 @@ Com um banco gerenciado, a AWS assume a responsabilidade por:
 A AWS oferece uma família ampla de serviços de banco de dados. A seguir os
 principais:
 
-=== imagem slide
+#figure(
+  caption: [Explicação de cada variação de Banco Gerenciado e seus signficados.],
+  image(width: 100%, "images/familiasbanco.png")
+)
 
 == Amazon RDS
 
@@ -287,7 +290,10 @@ A aplicação (teu código) precisa direcionar queries de leitura, para os endpo
 Réplicas podem estar em outra região e, além disso, podem ser promovidas a primary independente (útil para migrações ou disaster
 recovery entre regiões), ou seja, você pode desconectar uma réplica do sistema de cópias e transformá-la em um banco de dados principal e independente, que passa a aceitar leitura e gravação.
 
-=== imagem slide
+#figure(
+  caption: [Comparação entre Multi-AZ e Read Replicas.],
+  image(width: 100%, "images/caracteristicasreadreplicas.png")
+)
 
 Basicamente, o Multi-AZ pode cobrir parte dos problemas que o Read Replicas cobre, e vice-versa.
 
@@ -306,9 +312,12 @@ O Amazon Aurora resolver esse problema, da forma:
 
 Essas incríveis vantagens que eu não entendi completamente trazem consequências práticas:
 
-=== imagem slide
+#figure(
+  caption: [Vantagens de usar Aurora em comparação com PostgreSQL e MySQL.],
+  image(width: 100%, "images/consequenciasaurora.png")
+)
 
-Quando compensa:
+Concluindo então, quando compensa:
 - Produto de produção com leitura intensa e necessidade de alta disponibilidade.
 - Crescimento orgânico do volume sem a necessidade de gerenciar storage.
 - Failover rápido crítico para a aplicação.
@@ -351,8 +360,6 @@ Para organizar e encontrar seus dados rapidamente dentro dessas partições, o D
 
 Uma função de hash é aplicada sobre o valor da Partition Key para determinar em qual partição física o item será armazenado.
 
-=== imagem slide
-
 Assim, todos os itens com a mesma Partition Key são levados para a
 mesma partição, ou seja, latência rápida e constante.
 
@@ -381,7 +388,10 @@ Funciona em três passos:
 - Imagem - Pacote fechado e imutável gerado a partir do Dockerfile;
 - Container - Instância em execução da imagem;
 
-=== imagem slide
+#figure(
+  caption: [Comparação entre Docker e Máquina Virtual.],
+  image(width: 100%, "images/comparacaodocker.png")
+)
 
 === Dockerfile
 
