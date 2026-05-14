@@ -498,5 +498,8 @@ O ECS se integra nativamente ao CloudWatch da AWS. Nele, você tem duas ferramen
 - Container Insights - Coleta métricas detalhadas e visuais do seu cluster, dos serviços e de cada container individualmente;
 - CloudWatch Alarms: Fica vigiando essas métricas para acionar automaticamente as regras do Auto Scaling (como criar mais máquinas em um pico) ou para disparar alertas operacionais (como enviar um e-mail).
 
-= Slide 7 - Comunicação através de mensagens
+=  7 - Comunicação através de mensagens
 
+A mensagem consiste em um bloco de dados copiado do processo emissor para o processo do receptor, possibilitando assim a comunicação entre dois processos diferentes de duas máquinas diferentes.
+
+ A estrutura de uma mensagem é composta por um cabeçalho (header) e um corpo (body). O header contém informações de controle, como o remetente, destinatário, tipo de mensagem, etc., e o body é onde fica o conteúdo real da mensagem. Um sistema cujo comunicação é baseada em troca de mensagens devem dispor de um mecanismo capaz de enviar e receber pacotes de dados.
