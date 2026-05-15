@@ -508,9 +508,11 @@ Por isso, em geral, e de modo genérico, um mecanismo de mensagens costuma ser b
 - send(msg) - envia um pacote de dados;
 - receive(msg) - recebe um pacote de dados;
 
-=== imagem Slide
+#figure(
+  caption: [Imagem referenciando as funções *send* e *receive* entre dois processos diferentes. Em geral, o mesmo processo pode tanto receber quanto enviar, omitido por simplificação.],
+  image(width: 70%, "images/sendandreceive.png")
+)
 
-legenda: Imagem referenciando as funções *send* e *receive* entre dois processos diferentes. Em geral, o mesmo processo pode tanto receber quanto enviar, omitido por simplificação.
 
 Um método de endereçamento deve ser definido ao enviar uma mensagem a fim de definir seu desntino. Existem dois tipos de endereço:
 - Explícito - O processo recebe a mensagem a partir de um endereço. Ex:  192.168.0.3:8080.
@@ -519,36 +521,55 @@ Um método de endereçamento deve ser definido ao enviar uma mensagem a fim de d
 Os endereços podem mudar, e por isso é possível tornar o endereçamento de processos transparente através de um
 servidor de nomes (name server). Por exemplo, você não sabe o ip do google quando o acessa. mas o name server dele é google, e você consegue acessar sem apontar diretamente para o IP.
 
-=== Características de comunicação
+== Características de comunicação
+
+===  Unidirecional
 
 O canal de comunicação pode ser unidirecional ou com espera de resposta.
 
-==== img Slide
+#figure(
+  caption: [Nitidamente, o canal unidirecional permite a comunicação em apenas uma direção.],
+  image(width: 80%, "images/unidirecional.png")
+)
 
 ==== Confiável
 
 Além disso, também pode ser confiável ou não confiável.
 
-Num mecanismo confiável, o remetente=  e o destinatário estabelecem uma comunicação formal. Além disso, existem avisos de recebimento como resposta a cada mensagem enviada. Por fim, a ordem de envio dos pacotes também importa e, num mecanismo confiável, isso também é garantido. Exemplo: o próprio protocolo TCP (E-mails, mensagens).
+Num mecanismo confiável, o remetente  e o destinatário estabelecem uma comunicação formal. Além disso, existem avisos de recebimento como resposta a cada mensagem enviada. Por fim, a ordem de envio dos pacotes também importa e, num mecanismo confiável, isso também é garantido. Exemplo: o próprio protocolo TCP (E-mails, mensagens).
 
 Por outro lado, um mecanismo não confiável pode abrir mão de conhecer seu destinatário, não saber se ele recebeu corretamente e nem chegar em ordem, ganhando como trade-off velocidade. Exemplo de protocolo: UDP (Serviços de Streaming usam esse protocolo, pois querem apenas que você receba o conteúdo com rapidez).
 
-==== Bloqueante
+=== Bloqueante
 
 As chamadas podem ser bloqueantes ou não bloqueantes 
 
-Caso a chamada send() seja bloqueante o processo irá esperar até receber a confirmação de recebimento da mensagem. Caso contrário, o processo de envio é não bloqueante e continua executando durante a sua operação.
+Caso a *chamada* send() seja bloqueante o processo irá esperar até receber a confirmação de recebimento da mensagem. Caso contrário, o processo de envio é não bloqueante e continua executando durante a sua operação.
 
-==== img slide
 
-Caso a chamada receive() seja bloqueante, o processo irá esperar até receber uma mensagem para processar. Caso contrário, 
+#figure(
+  caption: [Como explicado, o processo para, no exemplo de send() bloqueante.],
+  image(width: 80%, "images/bloqueante.png")
+)
+
+Caso a *chamada* receive() seja bloqueante, o processo irá esperar até receber uma mensagem para processar. Caso contrário, 
 o processo irá continuar executando a sua operação.
 
-=== img slide
+#figure(
+  caption: [Como explicado, o processo para, no exemplo de send() bloqueante.],
+  image(width: 80%, "images/bloqueantereceive.png")
+)
 
 == Sockets
 
-Socket é um recurso fornecido pelo sistema operacional para comunicação entre processos.
+Socket é um recurso fornecido pelo sistema operacional para comunicação entre processos. É uma abstração para um ponto final de comunicação, permitindo que processos em máquinas diferentes se comuniquem através de uma rede. Ele é identificado por um endereço IP e um número de porta, formando um par único (IP:porta) para cada processo.
+
+=== Protocolo TCP
+
+O protocolo TCP (Transmission Control Protocol) é um protocolo de comunicação confiável e orientado à conexão. Ele é um exemplo de protocolo confiável, pois garante a entrega correta e ordenada das mensagens. Abaixo vai um diagram de como funciona o processo de envio usando esse protocolo:
 
 
-=== 
+#figure(
+  caption: [Como explicado, o processo para, no exemplo de send() bloqueante.],
+  image(width: 60%, "images/tcp.png")
+)
