@@ -502,4 +502,53 @@ O ECS se integra nativamente ao CloudWatch da AWS. Nele, você tem duas ferramen
 
 A mensagem consiste em um bloco de dados copiado do processo emissor para o processo do receptor, possibilitando assim a comunicação entre dois processos diferentes de duas máquinas diferentes.
 
- A estrutura de uma mensagem é composta por um cabeçalho (header) e um corpo (body). O header contém informações de controle, como o remetente, destinatário, tipo de mensagem, etc., e o body é onde fica o conteúdo real da mensagem. Um sistema cujo comunicação é baseada em troca de mensagens devem dispor de um mecanismo capaz de enviar e receber pacotes de dados.
+A estrutura de uma mensagem é composta por um cabeçalho (header) e um corpo (body). O header contém informações de controle, como o remetente, destinatário, tipo de mensagem, etc., e o body é onde fica o conteúdo real da mensagem. Um sistema cuja comunicação é baseada em troca de mensagens devem dispor de um mecanismo capaz de enviar e receber pacotes de dados.
+
+Por isso, em geral, e de modo genérico, um mecanismo de mensagens costuma ser baseado em duas primitivas:
+- send(msg) - envia um pacote de dados;
+- receive(msg) - recebe um pacote de dados;
+
+=== imagem Slide
+
+legenda: Imagem referenciando as funções *send* e *receive* entre dois processos diferentes. Em geral, o mesmo processo pode tanto receber quanto enviar, omitido por simplificação.
+
+Um método de endereçamento deve ser definido ao enviar uma mensagem a fim de definir seu desntino. Existem dois tipos de endereço:
+- Explícito - O processo recebe a mensagem a partir de um endereço. Ex:  192.168.0.3:8080.
+- Implícito - O(s) processo(s) deverão receber a mensagem a partir de um tópico. Ex: update_users.
+
+Os endereços podem mudar, e por isso é possível tornar o endereçamento de processos transparente através de um
+servidor de nomes (name server). Por exemplo, você não sabe o ip do google quando o acessa. mas o name server dele é google, e você consegue acessar sem apontar diretamente para o IP.
+
+=== Características de comunicação
+
+O canal de comunicação pode ser unidirecional ou com espera de resposta.
+
+==== img Slide
+
+==== Confiável
+
+Além disso, também pode ser confiável ou não confiável.
+
+Num mecanismo confiável, o remetente=  e o destinatário estabelecem uma comunicação formal. Além disso, existem avisos de recebimento como resposta a cada mensagem enviada. Por fim, a ordem de envio dos pacotes também importa e, num mecanismo confiável, isso também é garantido. Exemplo: o próprio protocolo TCP (E-mails, mensagens).
+
+Por outro lado, um mecanismo não confiável pode abrir mão de conhecer seu destinatário, não saber se ele recebeu corretamente e nem chegar em ordem, ganhando como trade-off velocidade. Exemplo de protocolo: UDP (Serviços de Streaming usam esse protocolo, pois querem apenas que você receba o conteúdo com rapidez).
+
+==== Bloqueante
+
+As chamadas podem ser bloqueantes ou não bloqueantes 
+
+Caso a chamada send() seja bloqueante o processo irá esperar até receber a confirmação de recebimento da mensagem. Caso contrário, o processo de envio é não bloqueante e continua executando durante a sua operação.
+
+==== img slide
+
+Caso a chamada receive() seja bloqueante, o processo irá esperar até receber uma mensagem para processar. Caso contrário, 
+o processo irá continuar executando a sua operação.
+
+=== img slide
+
+== Sockets
+
+Socket é um recurso fornecido pelo sistema operacional para comunicação entre processos.
+
+
+=== 
