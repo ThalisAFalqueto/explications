@@ -532,7 +532,7 @@ O canal de comunicação pode ser unidirecional ou com espera de resposta.
   image(width: 80%, "images/unidirecional.png")
 )
 
-==== Confiável
+==  = Confiável
 
 Além disso, também pode ser confiável ou não confiável.
 
@@ -566,10 +566,35 @@ Socket é um recurso fornecido pelo sistema operacional para comunicação entre
 
 === Protocolo TCP
 
-O protocolo TCP (Transmission Control Protocol) é um protocolo de comunicação confiável e orientado à conexão. Ele é um exemplo de protocolo confiável, pois garante a entrega correta e ordenada das mensagens. Abaixo vai um diagram de como funciona o processo de envio usando esse protocolo:
-
+O protocolo TCP (Transmission Control Protocol) é um protocolo de comunicação confiável e orientado à conexão. Ele é um exemplo de protocolo confiável, pois garante a entrega correta e ordenada das mensagens. Abaixo vai um diagrama de como funciona o processo de envio usando esse protocolo:
 
 #figure(
-  caption: [Como explicado, o processo para, no exemplo de send() bloqueante.],
+  caption: [No protocolo TCP, o cliente se conecta depois do servidor ficar escutando, e o servidor tem que aceitar, ou seja, ele verifica quem está tentando fazer a requisição. Depois da conexção, perrmite a troca de dados pelo read() e write().],
   image(width: 60%, "images/tcp.png")
 )
+
+=== Protocolo UDP
+
+Esse protocolo é não confiável e sem conexão. Ele é mais rápido, mas não garante a entrega ou a ordem das mensagens. Ele é usado em situações onde a velocidade é mais importante do que a confiabilidade, como em transmissões de vídeo ou jogos online.
+
+#figure(
+  caption: [Como mostrado na imagem ele não estabelece conexão, o que é uma das características que faz com que ele seja mais rápido.],
+  image(width: 60%, "images/udp.png")
+)
+
+=== OSI
+
+Osi - Open Systems Interconnection - é um modelo de referência para a comunicação em redes de computadores. Ele é dividido em sete camadas, cada uma com funções específicas, e é usado para entender e projetar sistemas de comunicação (não é um protocolo!).
+
+Esse modelo padroniza e explica o processo de conversa entre processos, ou computadores. É dividido em 7 camadas:
+
+#figure(
+  caption: [Explicação de cada camada do modelo OSI, e suas respectivas funções.],
+  image(width: 100%, "images/osi.png")
+)
+
+Como mostrado, a comunicação entre processos pode ser realizada através de sockets. Alguns exemplos de mecanismos são construídos sobre sockets para abstrair a comunicação de rede são RPC, REST, Publish-Subscribe e GraphQL.
+
+A arquitetura REST se baseia na separação entre cliente e servidor para que ambos evoluam de forma independente. Ela também exige que a comunicação seja stateless, o que significa que o servidor não guarda histórico de sessão e cada requisição deve conter todas as informações necessárias para ser processada isoladamente.
+
+Daí pra frente o professor passa demais por cima de alguns outros tópicos que eu não vou nem tentar resumir por ser superficial demais.
