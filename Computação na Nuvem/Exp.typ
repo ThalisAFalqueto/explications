@@ -532,7 +532,7 @@ O canal de comunicação pode ser unidirecional ou com espera de resposta.
   image(width: 80%, "images/unidirecional.png")
 )
 
-==  = Confiável
+=== Confiável
 
 Além disso, também pode ser confiável ou não confiável.
 
@@ -598,3 +598,61 @@ Como mostrado, a comunicação entre processos pode ser realizada através de so
 A arquitetura REST se baseia na separação entre cliente e servidor para que ambos evoluam de forma independente. Ela também exige que a comunicação seja stateless, o que significa que o servidor não guarda histórico de sessão e cada requisição deve conter todas as informações necessárias para ser processada isoladamente.
 
 Daí pra frente o professor passa demais por cima de alguns outros tópicos que eu não vou nem tentar resumir por ser superficial demais.
+
+= Slide 8 - Armazenamento Escalável
+
+Vamos descobrir os fundamentos do Amazon S3! Aparentemente, temos outras opções de armazenamento:
+
+#figure(
+  caption: [Modelos possíveis de armazenamento],
+  image(width: 100%, "images/armazenamentoescalavel.png")
+)
+
+O modelo Block Storage é melhor para sistemas de arquivos, bancos de dados e aplicações que exigem acesso rápido a blocos de dados. A limitação desse tipo de storage é que é único por instância.
+
+Temos também o File Storage que é um sistema de arquivos compartilhado, ideal para aplicações que precisam acessar os mesmos arquivos simultaneamente, como servidores web ou sistemas de arquivos distribuídos. Ele é mais flexível do que o Block Storage, mas pode ter uma latência maior.
+
+Já o modelo Object Storage é ideal para armazenar grandes volumes de dados não estruturados, como arquivos de mídia, backups e dados de big data, onde a escalabilidade e a durabilidade são mais importantes do que a latência.
+
+== S3 - Object Storage
+
+Usa uma estrutura completamente plana de Chave-valor, dividia em 3 componentes:
+- Bucket - Container lógico para armazenar objetos. O nome do bucket deve ser globalmente único, ou seja, não pode haver dois buckets com o mesmo nome em toda a AWS. Ele é o nível mais alto de organização e serve como um namespace para os objetos que ele contém;
+- Objeto - O Objeto é o arquivo em si (dados binários de até 50 TB) combinado com seus Metadados (as tags que explicam o que o arquivo é, como Content-Type).
+- Chave - A chave é o identificador único do objeto dentro do bucket.
+
+Exemplo de endpoint do S3: `https://<nome-do-bucket>.s3.<regiao>.amazonaws.com/<chave>`
+=== Classes de Armazenamento
+
+#figure(
+  caption: [Essa imagem diz mais que mil palavras.],
+  image(width: 100%, "images/custoss3.png")
+)
+
+Glacier é pra dado muito antigo, IA é para dado sei lá, semestral, e os outros dois são de uso comum/frequente.
+
+=== Controle de acesso
+
+Os buckets e objetos criados no Amazon S3 são totalmente privados por padrão, o que significa que nenhum dado fica exposto à internet ou a outros usuários sem uma autorização explícita. Para gerenciar quem pode entrar e o que pode fazer, a AWS utiliza a bucket policy, que consiste em um documento estruturado em formato JSON associado diretamente ao contêiner para detalhar quais usuários, funções ou serviços possuem permissões de leitura, escrita ou exclusão sobre determinados recursos.  
+
+=== Versionamento
+
+A sobreescrita de um arquivo pelo envio de outro com o mesmo nome ou a sua exclusão direta são ações totalmente irreversíveis!! Para mitigar o risco de perda de dados, o desenvolvedor pode habilitar o mecanismo de versionamento, que passa a preservar todos os estados históricos do objeto que em algum momento foram salvos, permitindo que qualquer versão antiga armazenada continue acessível para recuperação.
+
+=== Lifecycle Rules 
+
+Em vez de pagar caro para deixar um arquivo guardado na gaveta mais rápida para sempre, você cria uma regra que move ou apaga esse arquivo conforme o tempo passa. Ou seja, você pode mover os arquivos para outras classes de acordo com uso, porém, os arquivos só podem ser movidos para classes mais frias e baratas.
+Ou seja, se precisar que os arquivos esquentem sozinhos conforme as pessoas voltam a acessá-los, deve usar o serviço Intelligent-Tiering em vez das regras rígidas de ciclo de vida.
+
+Exemplo pra logs de alguma coisa: 
+
+ Standard (30d) → Standard-IA (60d) → Glacier (90d) → expirar após 365
+dias.
+
+=== Outras características
+
+Também é dito que ele é bastante durável (99,999999999% de durabilidade, ou seja, 11 noves) e tem alta disponibilidade (99,99% de disponibilidade). Ele é escalável automaticamente, ou seja, não tem limite de armazenamento e é isso de útil pra saber.
+
+= Slide 9 - Publish-Subscribe
+
+agora a brincadeira começa
