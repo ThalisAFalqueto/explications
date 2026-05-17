@@ -752,3 +752,40 @@ A solução comum é assinar uma fila SQS dedicada para cada consumidor, ou seja
 - Cada consumidor processa sua fila de acordo com a sua capacidade.
 
 === Amazon EventBridge
+
+No SNS, o produtor precisava definir os filtros que o broker iria ler
+para decidir quais assinantes receberiam a mensagem, nos atributos fora da mensagem. Já no EventBridge, 
+o produtor pode simplesmente publicar um evento sem se preocupar com os filtros, e o broker (EventBridge) é que vai ler o conteúdo do evento e decidir para quais assinantes encaminhar, de acordo com as regras de roteamento configuradas. 
+
+Isso em geral é melhor escalável, pois, por exemplo, se antes no SNS usávamos a mensagem de atributos de fora com apenas os atributos 'status' e 'id', e isso era separado no broker para cada tipo de status, mas, agora, queremos adicionar 
+um novo atributo 'type' para filtrar por tipo de evento, no SNS teríamos que mudar o produtor para começar a enviar esse novo atributo, e isso pode ser complicado se o produtor for um sistema legado ou de terceiros. Já no EventBridge, o broker tem acesso a todo o json de dentro do evento, e pode começar a ler esse novo atributo 'type' sem que o produtor precise fazer nenhuma mudança, o que é muito mais flexível.
+
+==== Event Buses
+
+O EventBridge organiza os eventos em barramentos (event buses), que são canais lógicos para agrupar eventos relacionados. Existem três tipos de event buses:
+- Default Event Bus: É o barramento padrão onde eventos de serviços AWS são enviados automaticamente (S3, EC2, ECS, etc);
+- Custom Event Bus: O usuário pode criar seus próprios barramentos personalizados para organizar eventos específicos da aplicação ou de terceiros, permitindo uma melhor segmentação e controle sobre o fluxo de eventos;
+- Partner Event Bus: Barramentos pré-configurados para integração com parceiros SaaS (Software as a Service), facilitando a ingestão de eventos de serviços externos sem a necessidade de configuração complexa (integração com Stripe, Datadog, Zendesk, PagerDuty, etc).
+
+==== Recursos extras
+
+O EventBridge também oferece recursos avançados como:
+
+- Em uma empresa grande com dezenas de microsserviços, os programadores esquecem quais campos existem dentro do JSON de um evento, e o EventBridge tem um recurso de Schema Registry, que é um catálogo centralizado onde os eventos são registrados com seus respectivos esquemas;
+- Cria um arquivo de log de cada evento que passa por ele, o que é útil para auditoria e depuração (archive & replay);
+- Enquanto o SNS entrega para uns 6 ou 7 destinos diferentes, o EventBridge consegue acionar quase qualquer serviço dentro da AWS (mais de 30) diretamente, sem você precisar escrever código para fazer a ponte.
+
+=== AmazonMQ
+
+Amazon MQ é um serviço gerenciado de message broker para Apache ActiveMQ e RabbitMQ, e sua motivação central para utilizá-lo é a compatibilidade com protocolos abertos, como JMS, AMQP, MQTT, STOMP, OpenWire e NMS. Indicado quando o sistema já depende de um RabbitMQ ou ActiveMQ on-premise e será migrado para nuvem (lift-and-shift).
+
+AmazonMQ não é serverless, ou seja, A AWS reserva uma máquina virtual debaixo dos panos para rodar o RabbitMQ para você. Essa máquina fica ligada 24 horas por dia. Se o seu sistema ficar ocioso no qualquer dia e não trafegar nenhuma mensagem, você paga do mesmo jeito.
+
+Têm suporte a dois engines, ActiveMQ Classic e RabbitMQ, e ambos são compatíveis com os protocolos abertos mencionados, mas o RabbitMQ é mais moderno, mas meio que nós não vamos usar agora.
+
+Tem alguns modos de implantação tipo Single Instance e tal mas acho que não é necessário saber agora.
+
+=== Amazon MSK
+
+Amazon MSK é o Apache Kafka gerenciado pela AWS. Apropriado para streaming de eventos em alta escala, log persistente e replay nativo. Disponível em dois modos de implantação: Serverless (MSK Serverless) e Provisionado (MSK Provisioned). O modo Serverless é recomendado para cargas de trabalho imprevisíveis, enquanto o modo Provisionado é ideal para cargas de trabalho estáveis e de alta demanda. O MSK é compatível com as APIs do Apache Kafka, permitindo que os clientes usem suas bibliotecas Kafka existentes sem modificações. Permite construir pipelines de dados em tempo real conectando bancos, S3 e outros
+sistemas.
