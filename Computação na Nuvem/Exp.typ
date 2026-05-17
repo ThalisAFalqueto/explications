@@ -655,4 +655,100 @@ Também é dito que ele é bastante durável (99,999999999% de durabilidade, ou 
 
 = Slide 9 - Publish-Subscribe
 
-agora a brincadeira começa
+O padrão publish-subscribe é um modelo arquitetura utilizado para comunicação através de mensagens com baixo acoplamento entre as partes:
+
+#figure(
+  caption: [Broker realiza uma intermediação entre emissor e receptor.],
+  image(width: 65%, "images/pubsub.png")
+)
+
+O padrão pub-sub quebra a dependência de protocolos tradicionais de o emissor saber exatamente quem recebe a mensagem, onde e se o receptor está ativo, pois sua intermediação tem algumas características importantes (o tal do baixo acoplamento):
+- O broker pode armazenar mensagens temporariamente, garantindo que mesmo que o receptor esteja offline ou não funcionando, as mensagens sejam recebidas e respondidas depois;
+- O emissor e o receptor não precisam conhecer detalhes um do outro, como endereço IP ou número de porta, pois a comunicação é feita através de tópicos (topics) ou filas (queues) gerenciados pelo broker;
+- Não precisam compartilhar a mesma tecnologia, esse trabalho é do broker;
+
+== Tópicos e filtragens de mensagens
+
+Um tópico funciona como uma separação de envio de mensagens. O produtor não envia a mensagem para um destinatário específico; ele  carimba a mensagem com o tópico e a joga no Broker. Quem dita quem vai receber são os consumidores, que se inscrevem nos tópicos que acham interessantes.
+
+#figure(
+  caption: [No exemplo, car i enviam mensagens, onde cada cor pertence a um tópico diferente. Os consumidores se inscrevem nos tópicos de interesse, por exemplo, 'Crash Detector' se inscreveu no tópico Verde.],
+  image(width: 65%, "images/pubsub2.png")
+)
+
+Além disso, as propriedades ou o conteúdo da mensagem também podem ser utilizados como filtro na inscrição do consumidor, e as mensagens podem ter nível de prioridade. Por fim, o padrão também pode ser aplicado na modelagem interna de uma aplicação, por exemplo, aplicações Javascript utilizando Angular ou React.
+
+Considere o exemplo abaixo:
+#figure(
+  caption: [Como implementar o padrão pub-sub de maneira eficiente?],
+  image(width: 55%, "images/eventos.png")
+)
+
+Você poderia enviar cada nova mensagem a cada componente da rede para que eles escolhessem o que fazer, mas é claro que não é isso que estamos aprendendo aqui, e, portanto, a solução é usar um broker, da forma abaixo:
+
+#figure(
+  caption: [Esse é o resultado esperado: o broker recebe a mensagem e distribui para os consumidores interessados, sem que o emissor precise se preocupar com isso.],
+  image(width: 55%, "images/eventos2.png")
+)
+
+== Trade-off entre brokers
+
+Ao adotar ferramentas de propósito geral (como RabbitMQ ou Kafka), você garante a portabilidade para rodar seu sistema em qualquer lugar sem ficar preso a um provedor, mas sua equipe assume o custo e a complexidade de manter esses servidores funcionando; já ao optar por serviços nativos da nuvem (como AWS SQS ou GCP Pub/Sub), você ganha extrema simplicidade operacional, deixando o trabalho duro de infraestrutura para a provedora, porém aceita o risco do vendor lock-in, amarrando o código e a arquitetura da sua aplicação às ferramentas exclusivas daquela empresa.
+
+== Mensageria gerenciada pela AWS
+
+A AWS oferece um catálogo de serviços para diferentes padrões de comunicação assíncrona:
+- Serviços nativos (os que escrevemos no trade-off como dependentes da AWS): SQS (Simple Queue Service) para filas, SNS (Simple Notification Service) para tópicos e EventBridge para eventos;
+- Serviços de código aberto gerenciados pela AWS: Amazon MQ (baseado em Apache ActiveMQ) e Amazon MSK (baseado em Apache Kafka). Esses serviços permitem que você use as mesmas APIs e ferramentas de código aberto, mas com a conveniência de uma solução gerenciada pela AWS.
+
+=== Amazon SQS
+
+Modo de funcionamento: O produtor envia, o consumidor faz pooling(faz checagem periódica, pois o produtor não notifica como a mensagem chega), e cada mensagem é processada por exatamente um consumidor.
+
+Outras características:
+- Mensagem até 256 KB (extensível para 2 GB via S3);
+- Retenção configurável (1 min a 14 dias), depois disso, a mensagem é excluída automaticamente;
+- Visibility Timeout (Tempo de Visibilidade), que é o período em que a mensagem fica invisível para outros consumidores após ser lida por um consumidor, evitando que seja processada por mais de um consumidor ao mesmo tempo. Se o consumidor não confirmar o processamento da mensagem dentro desse período, ela se torna visível novamente para outros consumidores.
+- DLQ (Dead Letter Queue), configuração de um número de tentativas de processamento pra excluir uma mensagem.
+
+==== Fila Standard
+
+É um tipo de fila do próprio SQS, tem algumas características:
+- Vazão virtualmente ilimitada, ou seja, pode processar um número muito grande de mensagens por segundo;
+- Entrega as mensagens pelo menos uma vez;
+- A ordem de entrega das mensagens não é garantida, ou seja, as mensagens podem chegar em uma ordem diferente da que foram enviadas.
+
+Caso típico de uso: alta vazão, ordem não-crítica e com consumidores idempotentes (A idempotência aqui é necessária pois, se duas mensagens forem duplicadas, elas não causarão efeitos colaterais).
+
+==== Fila FIFO
+
+Outro tipo:
+- Limitada à 300 msg/s por padrão, que pode ser aumentada se ativar um modo;
+- Entrega as mensagens exatamente uma vez;
+- Garantia de ordem de entrega;
+
+Caso típico: a ordem importa ou o consumidor não é indepotente
+
+=== Amazon SNS
+
+O SNS (Simple Notification Service) é o serviço pub/sub nativo do AWS. Como explicado no começo do capítulo, esse é o serviço em que  o produtor publica em um tópico e todos os assinantes recebem.
+
+Suporta múltiplos tipos de assinantes (quem recebe as mensagens):
+ - Filas SQS, funções Lambda, endpoints HTTP/HTTPS, e-mail, SMS, push para mobile, etc
+
+Suporta tópicos Standard e FIFO (os mesmos explicados anteriormente mas para tópicos). Além disso, enquanto o SQS é uma sala de espera, o SNS é um roteador, no sentido de não ter memória de longo prazo. O trabalho dele é pegar a mensagem e tentar empurrar para os assinantes na mesma hora.
+
+Para controlar mensagens não entregues, cada falha de entrega aciona uma política de retry específica do tipo de destino. Esse retry tem um limite de tempo, e quando passar esse limite, a mensagem é exluída ou pode ser mandada para um DLQ assim como no SQS.
+
+A filtragem pode ser feita por atributos da mensagem ou pelo conteúdo do payload JSON, ou seja, um tópico pode ser, por exemplo "Receber apenas onde o atributo 'event_type' seja igual a 'user_signup'". Isso facilita a vida do broker, que verifica esse atributo automaticamente e só encaminha a mensagem para os assinantes interessados, sem que o produtor precise se preocupar com isso. O único problema é que o produtor pode não ter enviado esse atributo, e, nesse caso, a mensagem é encaminhada para todos os assinantes do tópico, o que pode gerar tráfego desnecessário.
+
+=== Padrão Fan-out
+
+O serviço SNS sozinho não persiste mensagens, ou seja, se um consumidor falhar durante a entrega a mensagem se perde.
+
+A solução comum é assinar uma fila SQS dedicada para cada consumidor, ou seja:
+- O produtor publica uma única vez no tópico SNS;
+- O SNS replica a mensagem para N filas SQS (uma por consumidor);
+- Cada consumidor processa sua fila de acordo com a sua capacidade.
+
+=== Amazon EventBridge
