@@ -108,3 +108,29 @@ Objetivo deste material é me ajudar a entender como a internet funciona, mais e
 Vamos lá! Inicialmente vou separar em livros, talvez fique mais fácil de entender.
 
 = How the Internet Really Works
+
+Pensando num grafo, a Internet não é completamente conectada, mas tem vários centros ou nós, e conexões diretas ou indiretas entre eles.
+
+Nós são dispositivos, como computadores, roteadores, etc. Conexões são os links físicos ou lógicos que permitem a comunicação entre esses nós.
+Todo nó tem um endereço IP, que é como um número de telefone para o dispositivo na rede. Ele é usado para identificar e localizar o dispositivo na Internet.
+
+Nós podem transferir mensagens para outros nós se conectando a mesma rede e usando o endereço IP do destinatário. Nós usamos dispositivos chamados de roteadores para conectar redes diferentes. Roteadores direcionam os pacotes e os conjuntos de dados que fazem a Internet funcionar.
+
+Nós que provêm servicos para uma rede são chamados de servidores. Transmitem, recebem e processam informações. Nós que usam um serviço são chamados de clientes. No hardware de um computador, notebbok, etc, existe 
+a placa de rede, que é o dispositivo que conecta o computador à rede. Além disso, existe o MAC Adress (Media Access Control), que é um identificador único atribuído a cada placa de rede. Comparativamente ao CPF, ele identifica o dispositivo. Diferente do IP, que identifica onde você está.
+
+Para se comunicar com outros nós na rede, além do enereço MAC, você precisa de um endereço de rede. Para obtê-lo, seu dispositivo precisa conversar com o roteador. Depois de conectado, a placa de rede do seu dispositivo ganha um endereço através do DHCP (Dynamic Host Configuration Protocol). O DHCP é um protocolo de rede que atribui automaticamente endereços IP e outras informações de configuração de rede para dispositivos em uma rede. Ele facilita a conexão dos dispositivos à rede, garantindo que cada um tenha um endereço IP único e válido.
+Parabéns! Agora você é parte da rede.
+
+== Pacotes
+
+Toda vez que dois dispositivos se comunicam, eles trocam dados na forma de pacotes. Protocolos de internet descontroem todos esses dados e colocam eles em alguns pacotes, rastrados por uma tag de endereço que contem origem e destino. Isso é chamado de header (cabeçalho) do pacote. Pacotes são feitos de 0s e 1s, também conhecidos por bits. Eles são a unidade básica de dados que trafegam pela rede.
+
+Pelo ar, esses pacotes são transmitidos usando ondas de rádio. Por fios de cobre, são transmitidos por sinais eléticos, e por fibra ótica, são transmitidos por luz. O meio de transmissão pode variar, mas o formato dos pacotes é o mesmo.
+
+O processo de envio costuma seguir esse tráfico: 
+
+=== img
+
+== Protocolos
+
