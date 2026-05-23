@@ -101,9 +101,9 @@
 = Introdução
 
 Objetivo deste material é me ajudar a entender como a internet funciona, mais especificamente, como os dados trafegam pela rede, e quais são os protocolos envolvidos nesse processo, sejam eles UDP, TCP, HTTP, etc. Desde o início mais simples até onde eu conseguir entender. Para isso, estou com alguns livros:
-- "How the Internet Really Works", da Edidora no starch press;
-- Não lembro 1
-- Não lembro 2
+- "How the Internet Really Works", da Editora 'no starch press';
+- "How Computer Really Works", da Editora 'no starch press';
+- Não lembro, não li ainda;
 
 Vamos lá! Inicialmente vou separar em livros, talvez fique mais fácil de entender.
 

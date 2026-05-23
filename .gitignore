@@ -1,0 +1,33 @@
+# 1. Ambientes Virtuais (O mais importante para o uv)
+.venv/
+venv/
+env/
+
+# 2. Caches internos do Python
+__pycache__/
+*.py[cod]
+*$py.class
+
+# 3. Configurações locais de Editor e Ferramentas
+.vscode/
+.ruff_cache/
+.pytest_cache/
+
+# 4. Dados e Modelos de Machine Learning pesados
+*.csv
+*.dat
+*.pkl
+*.h5
+*.pt
+*.pth
+.ipynb_checkpoints/
+data/
+datasets/
+models/
+
+# 5. Segredos e Senhas
+.env
+
+# 6. Arquivos de Sistema Operacional (Windows/Mac)
+.DS_Store
+Thumbs.db
