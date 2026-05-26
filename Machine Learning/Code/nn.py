@@ -51,6 +51,9 @@ class NeuralNetwork:
         return last_Z
 
 
+
+
+
 print('Carregando MNIST...')
 (X_treino_orig, Y_treino_orig), (X_teste_orig, Y_teste_orig) = mnist.load_data()
 

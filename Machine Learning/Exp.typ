@@ -114,4 +114,6 @@ tipo especializado de rede feedforward. As redes feedforward são um
 degrau conceitual no caminho para as redes recorrentes, que impulsionam muitas aplicações de
 linguagem natural.
 
+= NN
 
+Ok, 
