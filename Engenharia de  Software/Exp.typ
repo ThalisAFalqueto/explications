@@ -1,0 +1,658 @@
+#import "@preview/ctheorems:1.1.3": *
+#import "@preview/lovelace:0.3.0": *
+#show: thmrules.with(qed-symbol: $square$)
+
+#import "@preview/codly:1.3.0": *
+#import "@preview/codly-languages:0.1.1": *
+#show: codly-init.with()
+#codly(languages: codly-languages, stroke: 1pt + luma(100))
+
+#import "@preview/tablex:0.0.9": tablex, rowspanx, colspanx, cellx
+
+#set page(width: 21cm, height: 30cm, margin: 1.5cm)
+
+#set par(
+  justify: true
+)
+
+#set figure(supplement: "Figura")
+
+#set heading(numbering: "1.1.1")
+
+#let theorem = thmbox("theorem", "Teorema")
+#let corollary = thmplain(
+  "corollary",
+  "Corolário",
+  base: "theorem",
+  titlefmt: strong
+)
+#let definition = thmbox("definition", "Definição", inset: (x: 1.2em, top: 1em))
+#let example = thmplain("example", "Exemplo").with(numbering: none)
+#let proof = thmproof("proof", "Demonstração")
+
+#set math.equation(
+  numbering: "(1)",
+  supplement: none,
+)
+#show ref: it => {
+  // provide custom reference for equations
+  if it.element != none and it.element.func() == math.equation {
+    // optional: wrap inside link, so whole label is linked
+    link(it.target)[(#it)]
+  } else {
+    it
+  }
+}
+
+#set text(
+  font: "Atkinson Hyperlegible",
+  size: 12pt,
+)
+
+#show heading: it => {
+  if it.level == 1 {
+    [
+      #block(
+        width: 100%,
+        height: 1cm,
+        text(
+          size: 1.5em,
+          weight: "bold",
+          it.body
+        )
+      )
+    ]
+  } else {
+    it
+  }
+}
+
+
+// ============================ PRIMEIRA PÁGINA =============================
+#align(center + top)[
+  FGV EMAp
+
+  Thalis Ambrosim Falqueto
+]
+
+#align(horizon + center)[
+  #text(17pt)[
+    Engenharia de Software
+  ]
+
+  #text(14pt)[
+    Explications
+  ]
+]
+
+#align(bottom + center)[
+  Rio de Janeiro
+
+  2026
+]
+
+#pagebreak()
+
+// ============================ PÁGINAS POSTERIORES =========================
+#outline(title: "Conteúdo")
+
+#pagebreak()
+
+= Aula 1 - Documentação, Contratos e SRP
+
+A aula usa dois exemplos: a "Cacto" é simplesmente uma loja de cactos com um método de quase $90$ linhas que faz de tudo (aparentemente feito por algum aluno de LP), sem nenhuma documentação, e a "Loja" é o exercício de correção, que isola só a fatia de "calcular o frete" desse mesmo problema pra refatorar passo a passo, do jeito errado até o SRP resolvido.
+
+== Cacto
+
+A loja vende cactos — cada um com nome, preço e altura — e monta pedidos com vários itens:
+
+```python
+class Cacto:
+    def __init__(self, nome, preco, altura_cm):
+        self.nome = nome
+        self.preco = preco
+        self.altura_cm = altura_cm
+
+
+class ItemPedido:
+    def __init__(self, cacto, quantidade):
+        self.cacto = cacto
+        self.quantidade = quantidade
+```
+
+Exemplo de *design by contract* citado em aula: o `__init__` de `ItemPedido` já declara, o que consome pra funcionar — um `cacto` e uma `quantidade`. Só que, como o próprio comentário no código admite, nada garante que `cacto` é de fato um `Cacto`. Documentar com docstring é pedir pra quem for usar a classe seguir o combinado: Python é fracamente tipado, então nada impede alguém de passar qualquer coisa ali. A saída ingênua seria verificar o tipo dentro do `__init__`, mas fazer esse tipo de verificação em todos os métodos e todos os parâmetros deixa o programa lento. Aí que entra o termo dito pelo Pinho: você declara o comportamento esperado e confia que quem chamou respeitou, em vez de reverificar tudo o tempo todo. 
+
+Na média, tudo que é interno ao sistema é tratado assim, e a verificação de fato só entra quando o sistema recebe algo de fora dele. Se um contrato não é respeitado, a consequência pode ser tão grave quanto o caso citado em aula do foguete da NASA que explodiu (não explodiu, mas *ver*).
+
+Continuando o código, o pedido guarda os dados do cliente e a lista de itens:
+
+```python
+class Pedido:
+    def __init__(self, cliente, email, cep, tipo_entrega, cupom, numero_cartao):
+        self.cliente = cliente
+        self.email = email
+        self.cep = cep
+        self.tipo_entrega = tipo_entrega
+        self.cupom = cupom
+        self.numero_cartao = numero_cartao
+        self.itens = []
+```
+
+E a entrega tem quatro formas possíveis, todas implementando o mesmo contrato abstrato:
+
+```python
+class Entrega(ABC):
+    @abstractmethod
+    def calcular_frete(self, peso_kg, cep):
+        ...
+
+    @abstractmethod
+    def prazo_em_dias(self, cep):
+        ...
+
+    @abstractmethod
+    def codigo_rastreio(self):
+        ...
+
+
+class Sedex(Entrega):
+    def calcular_frete(self, peso_kg, cep):
+        base = 18.90 + peso_kg * 2.35
+        if cep.startswith("6") or cep.startswith("7"):
+            base = base * 1.4
+        return base
+
+    def prazo_em_dias(self, cep):
+        return 2 if cep.startswith("0") else 5
+
+    def codigo_rastreio(self):
+        return "BR314159265BR"
+
+
+class Drone(Entrega):
+    def calcular_frete(self, peso_kg, cep):
+        base = 49.90 + peso_kg * 8.0
+        if peso_kg > 3.0:
+            base = base + 60.0
+        return base
+
+    def prazo_em_dias(self, cep):
+        return 1
+
+    def codigo_rastreio(self):
+        return "DRN-8080"
+
+
+class PomboCorreio(Entrega):
+    def calcular_frete(self, peso_kg, cep):
+        return 4.50 + peso_kg * 0.75
+
+    def prazo_em_dias(self, cep):
+        return
+
+    def codigo_rastreio(self):
+        return "OLHE-PARA-O-CEU"
+
+
+class CarrocaDeBoi(Entrega):
+    def calcular_frete(self, peso_kg, cep):  # nao usa o cep
+        return 9.90 + peso_kg * 0.40
+
+    def prazo_em_dias(self, cep):  # nao usa o cep
+        return 30
+
+    def codigo_rastreio(self):
+        return "BOI-0404"
+```
+
+Tudo isso converge pro método onde o professor usa os termos como *code smell* e *god class*: `ProcessadorDePedido.processar` calcula subtotal, aplica desconto, calcula peso, decide a entrega, calcula frete e imposto, valida cartão, grava em "banco", manda e-mail, imprime nota fiscal e loga — tudo junto, num só lugar:
+
+```python
+class ProcessadorDePedido:
+    def processar(self, pedido):
+        subtotal = 0
+        for item in pedido.itens:
+            subtotal = subtotal + item.cacto.preco * item.quantidade
+
+        desconto = 0
+        if pedido.cupom is not None:
+            if pedido.cupom == "NULLSAFE10":
+                desconto = subtotal * 0.10
+            elif pedido.cupom == "OFFBYONE5":
+                desconto = 5.0
+            elif pedido.cupom == "HELLOWORLD":
+                desconto = subtotal * 0.15
+                if desconto > 40.0:  # if devia ta pra fora desse elif
+                    desconto = 40.0
+
+        peso_kg = 0
+        for item in pedido.itens:
+            peso_kg = peso_kg + item.quantidade * (item.cacto.altura_cm * 0.05)
+
+        if pedido.tipo_entrega == "SEDEX":
+            entrega = Sedex()
+        elif pedido.tipo_entrega == "DRONE":
+            entrega = Drone()
+        elif pedido.tipo_entrega == "POMBO":
+            entrega = PomboCorreio()
+        elif pedido.tipo_entrega == "CARROCA":
+            entrega = CarrocaDeBoi()
+        else:
+            entrega = Sedex()  # talvez o sedex n entregue nesse lugar, tem q verificar
+
+        frete = entrega.calcular_frete(peso_kg, pedido.cep)
+        base_imposto = subtotal - desconto
+        imposto = base_imposto * 0.18
+        total = base_imposto + frete + imposto
+
+        if pedido.numero_cartao is None or len(pedido.numero_cartao) != 16:
+            raise ValueError("cartao invalido")
+        soma = 0
+        for c in pedido.numero_cartao:
+            if c < "0" or c > "9":
+                raise ValueError("cartao invalido")
+            soma = soma + int(c)
+        if soma % 10 != 0:
+            raise ValueError("cartao recusado")
+
+        sql = (
+            "INSERT INTO pedidos (cliente, cep, entrega, total) VALUES ('"
+            + pedido.cliente + "', '" + pedido.cep + "', '" + pedido.tipo_entrega
+            + "', " + f"{total:.2f}" + ")"
+        )
+        print("[BANCO] " + sql)
+        for item in pedido.itens:
+            print(
+                "[BANCO] INSERT INTO itens (pedido_cliente, cacto, qtd) VALUES ('"
+                + pedido.cliente + "', '" + item.cacto.nome + "', "
+                + str(item.quantidade) + ")"
+            )
+
+        corpo = "<html><body>"
+        corpo = corpo + "<h1>Obrigado, " + pedido.cliente + "!</h1>"
+        corpo = corpo + "<p>Seus cactos foram compilados sem warnings e entraram na fila de deploy.</p><ul>"
+        for item in pedido.itens:
+            corpo = corpo + "<li>" + str(item.quantidade) + "x " + item.cacto.nome + "</li>"
+        corpo = corpo + "</ul><p>Frete: R$ " + f"{frete:.2f}" + "</p>"
+        corpo = corpo + "<p>Total: R$ " + f"{total:.2f}" + "</p>"
+        corpo = corpo + "<p>Previsao de entrega: " + str(entrega.prazo_em_dias(pedido.cep)) + " dias</p>"
+        corpo = corpo + "</body></html>"
+        print("[SMTP] enviando para " + pedido.email)
+        print(corpo)
+
+        print("=== NOTA FISCAL ELETRONICA ===")
+        print("DESTINATARIO: " + pedido.cliente)
+        print("BASE DE CALCULO: " + f"{base_imposto:.2f}")
+        print("ICMS 18%: " + f"{imposto:.2f}")
+        print("VALOR TOTAL: " + f"{total:.2f}")
+        print("==============================")
+
+        print(
+            "[LOG] pedido de " + pedido.cliente + " processado com "
+            + str(len(pedido.itens)) + " itens, total " + f"{total:.2f}"
+        )
+
+        return total
+```
+Pinho também disse que 'quanto mais você precisa dar scroll numa função, pior ela é', 'código longo com variáveis pouco significativas é ruim de manter' e é 'pouco provável que você realmente precise de uma classe com $1000$ linhas' (fazendo referência a um código em produção real).
+
+É possível notar alguns outros erros, por exemplo: se `tipo_entrega` não bate com nenhuma das quatro strings, o código cai no Sedex em vez de apontar erro. 
+
+== Por que o `processar` deveria ser vários métodos (SRP)
+
+O problema dessa função é que ela tem várias (funções). Se listassemos, quem, na empresa, poderia pedir uma mudança em `ProcessadorDePedido.processar` — e apontando exatamente onde, dentro do método, cada um bateria:
+
+- a *contabilidade* precisar mudar a alíquota — o `0.18` fixo em `imposto = base_imposto * 0.18`;
+- o *marketing* criar um cupom novo — o bloco `if pedido.cupom == "NULLSAFE10": ...` 
+- o *marketing* precisar mudar o e-mail — o bloco que monta `corpo` em HTML e manda pro "SMTP";
+- o *gateway do cartão* mudar — a validação de `numero_cartao` (tamanho, dígitos, soma);
+- o *DBA* precisar mudar uma coluna — o `sql = "INSERT INTO pedidos ..."` montado por concatenação de string (que, à parte da aula, também é uma porta aberta pra SQL injection, já que `pedido.cliente` entra direto na query sem tratamento nenhum);
+- o *SEFAZ* mudar o layout da nota — o bloco `"=== NOTA FISCAL ELETRONICA ==="`;
+- os *Correios* mudarem o modo de calcular o peso — a fórmula `peso_kg = peso_kg + item.quantidade * (item.cacto.altura_cm * 0.05)`;
+- o *COO* querer oferecer outra forma de envio — o `if`/`elif` de `tipo_entrega`.
+
+É esse problema que o Princípio de Responsabilidade Única (SRP) corrige: cada componente deve apresentar uma única responsabilidade.
+
+== Loja (exercício de correção) <cod-aula1>
+
+O professor exemplifica a solução numa loja simplificada que faz somente o frete, produto e recibo, pra refatorar passo a passo. A etapa 1 comete o mesmo erro numa escala menor: 
+
+
+```python
+class Loja1:
+    def processar(self, cliente, valor, peso_kg, centro):
+        if centro == 'Sao Paulo':
+            frete = 10.0 + 2.0 * peso_kg
+        elif centro == 'Manaus':
+            frete = 25.0 + 1.2 * peso_kg
+        else:
+            frete = 10.0 + 2.0 * peso_kg
+
+        total = valor + frete
+        return f'{cliente} pagou R$ {total:.2f} (envio de  {centro})'
+```
+
+A etapa 2 divide `Loja1` em peças, cada uma cuidando de uma única coisa — calcular o total, gerar o recibo, e decidir o custo do frete, com uma subclasse por tipo de frete:
+
+```python
+class Frete(ABC):
+    @abstractmethod
+    def custo(self, peso_kg):
+        ...
+
+class FreteRodoviario(Frete):
+    def custo(self, peso_kg):
+        return 10.0 + 2.0 * peso_kg
+
+class FreteFluvial(Frete):
+    def custo(self, peso_kg):
+        return 25.0 + 1.2 * peso_kg
+
+class CalculadoraTotal:
+    def total(self, valor, frete):
+        return valor + frete
+
+class Recibo:
+    def gerar(self, cliente, total, centro):
+        return f'{cliente} pagou R$ {total:.2f} (envio de  {centro})'
+
+
+class Loja2:
+    def __init__(self, calculadora, recibo):
+        self.calculadora = calculadora
+        self.recibo = recibo
+
+    def processar(self, cliente, valor, peso_kg, centro):
+        if centro == 'Sao Paulo':
+            frete = FreteRodoviario()
+        elif centro == 'Manaus':
+            frete = FreteFluvial()
+        else:
+            frete = FreteRodoviario()
+
+        total = self.calculadora.total(valor, frete.custo(peso_kg))
+
+        return self.recibo.gerar(cliente, total, centro)
+```
+
+Agora, `Loja2` ainda tem um `if`, decidindo qual objeto usar, mas não faz mais o cálculo do frete nem monta o recibo. Rodando as duas etapas lado a lado, o resultado é o mesmo, mas a segunda já está pronta pra crescer sem precisar reescrever tudo de novo:
+
+```python
+cliente = 'Ada'
+valor = 100
+peso_kg = 2
+
+print('etapa 1 - tudo cagado')
+loja1 = Loja1()
+print(loja1.processar(cliente, valor, peso_kg, 'Sao Paulo'))
+print(loja1.processar(cliente, valor, peso_kg, 'Manaus'))
+
+print('etapa 2 - SRP dominado')
+loja2 = Loja2(CalculadoraTotal(), Recibo())
+print(loja2.processar(cliente, valor, peso_kg, 'Sao Paulo'))
+print(loja2.processar(cliente, valor, peso_kg, 'Manaus'))
+```
+
+
+= Aula 2 - Simple Factory, Factory Method e OCP
+
+`Loja2` (@cod-aula1) resolveu o SRP, mas o `if centro == ...` continua dentro de `processar`, decidindo qual `Frete` instanciar — ainda hardcoded, ainda verificação de string, o que a aula trata como problema sério mesmo depois do SRP resolvido. Some a isso uma regra de negócio nova: a loja quer simular o frete *antes* da compra, não só calculá-lo depois que o cliente já decidiu comprar, e passa a atender mais centros de distribuição. Isso importa porque agora vários lugares diferentes vão precisar da mesma lógica de "qual frete usar para este centro" — o checkout, o simulador — e ela está presa dentro de `Loja2`.
+
+Simple Factory resolve o problema das classes: tira o `if` de dentro da loja e concentra numa única classe cujo único trabalho é responder "dado um centro, qual objeto `Frete` eu devo criar?". A ideia, resumida em aula, é simplesmente *mudar o if de lugar*:
+
+```python
+class FabricaDeFrete:
+    def criar(self, centro):
+        if centro == 'Sao Paulo':
+            return FreteRodoviario()
+        elif centro == 'Manaus':
+            return FreteFluvial()
+        else:
+            return FreteRodoviario()
+
+
+class SimuladorDeFrete:
+    def __init__(self, fabrica):
+        self.fabrica = fabrica
+
+    def simular(self, centro, peso_kg):
+        return self.fabrica.criar(centro).custo(peso_kg)
+
+
+class Loja3:
+    def __init__(self, fabrica, calculadora, recibo):
+        self.fabrica = fabrica
+        self.calculadora = calculadora
+        self.recibo = recibo
+
+    def processar(self, cliente, valor, peso_kg, centro):
+        frete = self.fabrica.criar(centro)
+        total = self.calculadora.total(valor, frete.custo(peso_kg))
+        return self.recibo.gerar(cliente, total, centro)
+```
+
+(`Frete`, `FreteRodoviario` e `FreteFluvial` seguem sendo as mesmas classes de @cod-aula1 — só a decisão de qual usar mudou de lugar.) A `loja.py` não precisa mais entender de frete — só pede um `Frete` pronto pra fábrica. Isso parecia estranho no momento ("tá tão estranho o jeito que a gente tá programando"), porque cria mais classes em troca de menos lógica em cada uma. Mas com o `if` isolado, dois consumidores conseguem reaproveitá-lo: `Loja3` fica com uma única linha pra obter o frete, e `SimuladorDeFrete` simula o custo sem passar por uma compra — exatamente a regra nova do início da aula. O ganho não é fazer o `if` desaparecer — "a função fábrica de frete ainda tá ruim" —, é isolá-lo do resto do código: o acoplamento entre `Loja` e a lógica de frete diminui. Ficou registrada uma régua prática pra medir isso: *toda vez que uma mudança no código não obriga o `main` a mudar junto, o design melhorou* ("você é uma lenda histórica") — e de fato, a etapa 3 do `main` só precisa montar a fábrica e injetá-la:
+
+```python
+print("ETAPA 3 - SRP simple factory")
+fabrica = FabricaDeFrete()
+loja3 = Loja3(fabrica, CalculadoraTotal(), Recibo())
+print(loja3.processar(cliente, valor, peso_kg, 'Sao Paulo'))
+print(loja3.processar(cliente, valor, peso_kg, 'Manaus'))
+custo = SimuladorDeFrete(fabrica).simular("Belém", peso_kg)
+
+print("Simulação Belém", custo)
+```
+
+Repare que essa última linha ainda esconde o mesmo bug do `else` silencioso: como `FabricaDeFrete.criar` só reconhece `'Sao Paulo'` e `'Manaus'`, simular pra "Belém" cai no `else` e devolve `FreteRodoviario`, quando o certo seria um frete fluvial (como Manaus). O `if` não sumiu — só ficou escondido atrás de uma fábrica —, e é exatamente esse resíduo que motiva o próximo passo.
+
+Nesse ponto a aula sai do código e situa o Simple Factory dentro de um vocabulário maior — pela primeira vez na disciplina, uma arquitetura de código "sério". Um *padrão de projeto* é uma saída clássica, já testada, para um problema recorrente de modelagem; a referência dada foi o livro de 1994 do GoF (Gang of Four) — ver ressalva sobre essa referência na seção de sugestões do Claude. A aula encaixa a fábrica numa taxonomia de três níveis: *padrão de implementação* (no nível de função), *padrão de projeto* (no nível de orientação a objetos — no caso, um padrão de criação de objetos) e *padrão de arquitetura* (no nível do sistema inteiro). O Simple Factory é um exemplo de *padrão criacional*: resolve "qual é a forma correta de criar isso". Os próximos criacionais que a disciplina vai cobrir são Factory Method, a seguir, e Builder e Singleton na Aula 3 — como antecipação desse último, ficou um exemplo concreto: o próprio sistema de módulos do Python já é um singleton, já que importar o mesmo módulo duas vezes devolve o mesmo objeto.
+
+O Simple Factory ainda tem um `if` central, só que concentrado num único lugar. O Factory Method vai um passo além: em vez de uma fábrica perguntar "qual centro é esse?", cada centro de distribuição sabe, por si mesmo, qual frete criar — quem entrega essa decisão ao código passa a ser a própria classe do centro. Isso é feito com um método abstrato que cada subclasse implementa à sua maneira, uma por centro:
+
+```python
+class CentroDeDistribuicao(ABC):
+    def __init__(self, cidade, calculadora, recibo):
+        self.cidade = cidade
+        self.calculadora = calculadora
+        self.recibo = recibo
+
+    @abstractmethod
+    def criar_frete(self):
+        ...
+
+    def despachar(self, cliente, valor, peso_kg):
+        frete = self.criar_frete()
+        total = self.calculadora.total(valor, frete.custo(peso_kg))
+        return self.recibo.gerar(cliente, total, self.cidade)
+
+
+class CentroSaoPaulo(CentroDeDistribuicao):
+    def __init__(self, calculadora, recibo):
+        super().__init__("São Paulo", calculadora, recibo)
+
+    def criar_frete(self):
+        return FreteRodoviario()
+
+
+class CentroManaus(CentroDeDistribuicao):
+    def __init__(self, calculadora, recibo):
+        super().__init__("Manaus", calculadora, recibo)
+
+    def criar_frete(self):
+        return FreteFluvial()
+
+
+class CentroBelem(CentroDeDistribuicao):
+    def __init__(self, calculadora, recibo):
+        super().__init__("Belém", calculadora, recibo)
+
+    def criar_frete(self):
+        return FreteFluvial()
+```
+
+`CentroBelem` já resolve o problema deixado pela etapa 3: agora Belém tem, por conta própria, o frete fluvial certo — sem precisar tocar em nenhum `if`. O restante do fluxo (calcular total, gerar recibo) fica implementado uma única vez, no método concreto `despachar` da classe-base — as subclasses só precisam dizer *qual* frete usar. O polimorfismo substitui o `if`: quando o código chama `self.criar_frete()`, quem responde já é o objeto do centro certo, decidido no momento em que a classe foi escolhida (a instanciação), não dentro de um `if` em tempo de execução. Essa é a etapa 4:
+
+```python
+print("ETAPA 4")
+sao_paulo = CentroSaoPaulo(CalculadoraTotal(), Recibo())
+manaus = CentroManaus(CalculadoraTotal(), Recibo())
+belem = CentroBelem(CalculadoraTotal(), Recibo())
+print(sao_paulo.despachar(cliente, valor, peso_kg))
+print(manaus.despachar(cliente, valor, peso_kg))
+print(belem.despachar(cliente, valor, peso_kg))
+```
+
+O mesmo raciocínio vale pra produtos: pra cada produto novo que precise de fábrica própria, o padrão pede duas classes — o produto e a fábrica do produto (aqui, o "produto" é o `Frete`, e a "fábrica" é o próprio `CentroDeDistribuicao`).
+
+Comparado ao Simple Factory, adicionar um centro de distribuição novo passa a significar *criar* uma subclasse — não editar nenhuma existente: nada do código antigo precisou mudar pra isso, nem o `CentroDeDistribuicao` já existente precisou ser tocado pra nascer um tipo novo. Esse é, literalmente, o enunciado do Open/Closed Principle, o O do SOLID: uma classe deve estar fechada para modificação e aberta para extensão. A extensão acontece herdando de `CentroDeDistribuicao` e sobrescrevendo `criar_frete` — sem mexer no que já existe. O arquivo já deixa isso pronto pra ir mais longe: existe também uma `FreteAereo` (`40.0 + 6.5 * peso_kg`), que nenhum centro usa ainda — dá pra criar um `CentroBrasilia` amanhã sem tocar em mais nada além dessa nova classe.
+
+Fecha a aula reforçando a taxonomia de três níveis vista acima — padrão de implementação, padrão de projeto e padrão de arquitetura — com o aviso do que vem a seguir: Singleton, na próxima aula (quinta-feira).
+
+
+= Aula 3 - Builder e Singleton
+
+Builder resolve um problema diferente dos anteriores: não é mais sobre esconder um `if`, é sobre esconder a complexidade de *montar* um objeto. O exemplo dado foi fazer uma requisição HTTP — você precisa de url, header, token, body — ou uma consulta SQL via ORM, com schema, select, from, where: linhas e mais linhas só pra montar uma chamada, o que não é gerenciável e dificulta a leitura pra quem lê depois. O Builder é um truque, ainda um padrão criacional, pra resolver isso: cria-se uma classe específica só pra construir objetos de um tipo — nomeada normalmente como `{Produto}Builder` —, onde cada decisão de criação complexa fica dentro dessa classe, e o objetivo é fazer decisões encadeadas. O exemplo de aula foi montar um computador:
+
+```python
+class Computador:
+    def __init__(self):
+        self.processador = None
+        self.memoria_gb = None
+        self.armazenamento_gb = None
+        self.placa_video = None
+
+    def __str__(self):
+        return f'Processador: {self.processador}, Memória: {self.memoria_gb}, Armazenamento: {self.armazenamento_gb} e Placa de Vídeo {self.placa_video}'
+
+
+class ComputadorBuilder:
+    def __init__(self):
+        self.computador = Computador()
+
+    def com_processador(self, processador):
+        self.computador.processador = processador
+        return self
+
+    def com_memoria_gb(self, memoria_gb):
+        self.computador.memoria_gb = memoria_gb
+        return self
+
+    def com_armazenamento_gb(self, armazenamento_gb):
+        self.computador.armazenamento_gb = armazenamento_gb
+        return self
+
+    def com_placa_video(self, placa_video):
+        self.computador.placa_video = placa_video
+        return self
+
+    def construir(self):
+        return self.computador
+
+
+computador_gamer = (
+    ComputadorBuilder()
+    .com_processador('Intel I7')
+    .com_memoria_gb('16 GB RAM')
+    .com_armazenamento_gb('1024')
+    .com_placa_video('Nvd 5070')
+    .construir()
+)
+```
+
+Cada propriedade de construção difícil vira um método que devolve `self` — daí a cadeia —, enquanto o resto fica no `__init__` de `Computador`. Todos os métodos do builder fazem isso, com exceção do `.construir()`, que é quem devolve o produto final já pronto. Na vida real você raramente monta um computador atributo por atributo toda vez: normalmente existe uma classe com as construções comuns já prontas (configurações padrão), reaproveitando o mesmo builder por baixo:
+
+```python
+# na vida real criamos objetos padrão
+# muitas vezes vamos ter uma classe com todas as construções comuns que precisamos (configurações prontas)
+class InfoCentro:
+    def montar_computador_basico(self):
+        return (
+            ComputadorBuilder()
+            .com_processador('Intel I3')
+            .com_memoria_gb('8 GB RAM')
+            .com_armazenamento_gb('256')
+            .com_placa_video('Integrada')
+            .construir()
+        )
+
+    def montar_computador_gamer(self):
+        return (
+            ComputadorBuilder()
+            .com_processador('Intel I7')
+            .com_memoria_gb('16 GB RAM')
+            .com_armazenamento_gb('1024')
+            .com_placa_video('Nvd 5070')
+            .construir()
+        )
+
+
+quiosque = InfoCentro()
+
+print(computador_gamer)
+```
+
+Assim que o objeto que você está montando começa a ficar complexo, essa separação — quem sabe *como* montar, contra quem só decide *o quê* montar — já compensa.
+
+Singleton parte de um problema oposto: em vez de facilitar criar vários objetos, ele impede que exista mais de um. Só podemos ter uma instância na aplicação, impossível ter um segundo objeto. A analogia dada em aula: é como colocar um assento onde só cabe uma pessoa. Um nome comum pra esse tipo de classe é `Config`, embora o exemplo em si não implemente nenhum método de negócio, só o mecanismo. A primeira forma de resolver isso funciona em qualquer linguagem orientada a objetos (existe outro jeito, mas só funciona em Python) e mexe direto no `__new__`:
+
+```python
+from typing import ClassVar, Self
+
+
+# em cima do método new
+class SingletonNew:
+
+    _instance: ClassVar[SingletonNew | None] = None
+
+    def __new__(cls) -> Self:
+        if cls._instance is None:
+            print('[SingletonNew] Criando Nova instância')
+            cls._instance = super().__new__(cls)
+        else:
+            print('[SingletonNew] Retornando instância existente!')
+
+        return cls._instance
+
+    def __init__(self):
+        self.data: str = 'Shared Resource'
+
+
+print(SingletonNew() is SingletonNew())
+```
+
+Essa solução também pode ser misturada com Builder e outros padrões — o código acima é só o esqueleto, poderia ter métodos de negócio como qualquer classe normal. Só que, como ficou registrado em aula, "essa solução é uma bosta": toda vez que você instancia `SingletonNew()`, o `__init__` roda de novo mesmo quando `__new__` está devolvendo a instância antiga — o estado se torna repetido sempre, mesmo sem criar um objeto novo. E pior: com herança, o Singleton se duplica. Se uma classe filha herda de uma classe mãe que já implementa esse `__new__`, a classe filha acaba pegando o singleton da classe mãe. Não dá pra usar essa estratégia no `__new__` de forma confiável quando existe hierarquia.
+
+A segunda forma tenta resolver isso com um decorador, guardando cada instância criada num dicionário — em vez de uma cadeira, um banco com vários lugares, um pra cada tipo de classe decorada:
+
+```python
+from collections.abc import Callable
+from typing import Any
+
+
+def singleton_naive[T](cls: type[T]) -> Callable[..., T]:
+    instances: dict[type[T], T] = {}
+
+    def get_instance(*args: Any, **kwargs: Any) -> T:
+        if cls not in instances:
+            instances[cls] = cls(*args, **kwargs)
+        return instances[cls]
+
+    return get_instance
+
+
+@singleton_naive
+class SingletonNaive:
+    '''Singleton sem uma preocupação terrível'''
+
+    def __init__(self, rotulo: str = 'Sem algo que seria útil aqui') -> None:
+        self.rotulo = rotulo
+
+
+print(type(SingletonNaive))
+print(SingletonNaive().__name__, SingletonNaive().__doc__)
+```
+
+O problema aqui é de outra natureza: `get_instance` deveria receber tudo que o construtor da classe original receberia, mas como o decorador funciona pra qualquer classe, ele não tem como saber de antemão o que cada uma espera. E tem um efeito colateral mais sério — depois do decorador, `SingletonNaive` deixa de ser uma classe e passa a ser uma função (`get_instance`, guardada como closure, com `cls` capturado como freevar no frame da função original). Isso significa que um `isinstance` contra `SingletonNaive` já não funciona mais do jeito esperado, porque você estaria comparando contra uma função, não contra um tipo. O singleton em si funciona perfeitamente, mas a classe não funciona mais perfeitamente como classe.
+
+Terça-feira: fechar o Singleton de forma redonda, com metaclasse.
