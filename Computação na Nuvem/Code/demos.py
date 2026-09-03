@@ -6,7 +6,7 @@ REGIAO = 'us-east-1'
 print('Iniciando sessão com a AWS...')
 session = boto3.Session(region_name=REGIAO)
 
-s3_client = session.client('s3')
+s3_client = session.client('s3')  
 nome_bucket = 'demo-boto3-fallqz'  # nome único
 
 print('Criando S3 Bucket')
